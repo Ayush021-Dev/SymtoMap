@@ -1,0 +1,377 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600&display=swap');
+
+/* ─── Root Layout ─────────────────────────────────────────────────────────── */
+
+.hb-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-family: 'Exo 2', sans-serif;
+  color: #c8deff;
+}
+
+/* ─── 3D Canvas ───────────────────────────────────────────────────────────── */
+
+.hb-canvas-wrap {
+  flex: 1;
+  height: 100%;
+  max-width: 600px;
+  position: relative;
+}
+
+.canvas-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: rgba(100, 160, 255, 0.4);
+  font-family: 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ─── Hover chip ──────────────────────────────────────────────────────────── */
+
+.hover-chip {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(5, 15, 40, 0.88);
+  border: 1px solid rgba(60, 140, 255, 0.35);
+  border-radius: 20px;
+  padding: 6px 18px;
+  font-size: 13px;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #c8deff;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  animation: chipIn 0.15s ease;
+}
+
+@keyframes chipIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.hover-chip-risk {
+  font-weight: 700;
+}
+
+/* ─── Risk Legend ─────────────────────────────────────────────────────────── */
+
+.risk-legend {
+  width: 220px;
+  flex-shrink: 0;
+  padding: 24px 20px;
+  background: rgba(5, 12, 30, 0.7);
+  border: 1px solid rgba(60, 140, 255, 0.15);
+  border-radius: 4px;
+  backdrop-filter: blur(12px);
+  margin: 20px 0 20px 20px;
+}
+
+.legend-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: rgba(100, 160, 255, 0.6);
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-name {
+  font-size: 12px;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  color: #a8c4f0;
+  width: 56px;
+  flex-shrink: 0;
+  letter-spacing: 0.05em;
+}
+
+.legend-bar-wrap {
+  flex: 1;
+}
+
+.legend-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.legend-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.legend-pct {
+  font-size: 11px;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ─── Dialog Overlay ──────────────────────────────────────────────────────── */
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 5vw;
+  background: rgba(0, 5, 20, 0.45);
+  backdrop-filter: none;
+  animation: overlayIn 0.2s ease;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.dialog-wrapper {
+  animation: dialogIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes dialogIn {
+  from { opacity: 0; transform: translateX(40px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* ─── Organ Dialog ────────────────────────────────────────────────────────── */
+
+.organ-dialog {
+  width: 360px;
+  background: linear-gradient(160deg, rgba(6, 16, 40, 0.97) 0%, rgba(4, 10, 28, 0.97) 100%);
+  border: 1px solid rgba(60, 140, 255, 0.25);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 30px 80px rgba(0,0,0,0.8),
+    0 0 40px rgba(var(--risk-color), 0.08);
+}
+
+/* Corner bracket accents */
+.dc {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  z-index: 10;
+}
+.dc-tl { top: 6px; left: 6px; border-top: 1.5px solid var(--risk-color); border-left: 1.5px solid var(--risk-color); }
+.dc-tr { top: 6px; right: 6px; border-top: 1.5px solid var(--risk-color); border-right: 1.5px solid var(--risk-color); }
+.dc-bl { bottom: 6px; left: 6px; border-bottom: 1.5px solid var(--risk-color); border-left: 1.5px solid var(--risk-color); }
+.dc-br { bottom: 6px; right: 6px; border-bottom: 1.5px solid var(--risk-color); border-right: 1.5px solid var(--risk-color); }
+
+/* Close button */
+.dialog-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 20;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(180, 210, 255, 0.7);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.dialog-close:hover {
+  background: rgba(255,60,60,0.2);
+  border-color: rgba(255,60,60,0.4);
+  color: #ff6666;
+}
+
+/* 3D viewer */
+.dialog-viewer {
+  width: 100%;
+  height: 220px;
+  position: relative;
+  background: radial-gradient(ellipse at center, rgba(10,25,60,0.8) 0%, rgba(2,6,18,1) 100%);
+  border-bottom: 1px solid rgba(60,140,255,0.12);
+}
+
+.viewer-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Info section */
+.dialog-info {
+  padding: 20px 24px 24px;
+}
+
+.dialog-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: #e8f2ff;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.dialog-risk-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.drl-label {
+  color: #a0b8d8;
+  font-weight: 500;
+}
+
+.drl-value {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+}
+
+/* Risk bar */
+.dialog-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.dialog-bar {
+  flex: 1;
+  height: 5px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dialog-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dialog-pct {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  width: 40px;
+  text-align: right;
+}
+
+/* Issues */
+.dialog-issues {
+  margin-bottom: 20px;
+}
+
+.issues-heading {
+  font-size: 13px;
+  color: #a0b8d8;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.issues-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.issues-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #c0d4f0;
+}
+
+.issue-bullet {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* View Details button */
+.dialog-btn {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, rgba(30, 80, 180, 0.9), rgba(20, 60, 140, 0.9));
+  border: 1px solid rgba(80, 150, 255, 0.4);
+  border-radius: 3px;
+  color: #e0eeff;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+
+.dialog-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.dialog-btn:hover::before {
+  opacity: 1;
+}
+
+.dialog-btn:hover {
+  border-color: rgba(80, 150, 255, 0.7);
+  box-shadow: 0 0 20px rgba(60,120,255,0.3);
+  transform: translateY(-1px);
+}
