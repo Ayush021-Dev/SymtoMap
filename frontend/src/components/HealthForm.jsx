@@ -1,109 +1,327 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { GoogleGenerativeAI } from "@google/generative-ai"; // 1. Added Gemini SDK
 import "./HealthForm.css";
 
+// ─── Gemini Configuration ───────────────────────────────────────────────────
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY; 
+
+// Check if the key exists to avoid silent crashes
+if (!API_KEY) {
+    console.error("Gemini API Key is missing! Check your .env file and restart the server.");
+}
+const genAI = new GoogleGenerativeAI(API_KEY);
+
+// ─── Field schema for AI extraction ──────────────────────────────────────────
+const FIELD_SCHEMA = `
+Extract medical values from this report and return ONLY a JSON object.
+Map found values to these exact keys (skip keys not found in report):
+
+BASIC INFO: age (number), gender (0=female,1=male), height (cm), weight (kg)
+BLOOD PRESSURE: systolic_bp (mmHg), diastolic_bp (mmHg)
+CHOLESTEROL: cholesterol_level (1=normal,2=above normal,3=well above normal)
+GLUCOSE: glucose_level (1=normal,2=above normal,3=well above normal)
+LIFESTYLE: smoking_status (0=non,1=former,2=current), alcohol_consumption (0=none,1=occasional,2=moderate,3=heavy), physical_activity_level (0=sedentary,1=light,2=moderate,3=active)
+MEDICAL HISTORY: stroke (0/1), heart_disease (0/1), diff_walk (0/1), family_history_kidney (0/1)
+WELLNESS: mental_health (0-30 days poor), physical_health (0-30 days poor), energy_level (1-10), stress_level (0=low,1=moderate,2=high), immune_health (0=strong,1=average,2=weak)
+RESPIRATORY: breathing_issue (0/1), finger_discoloration (0/1), exposure_to_pollution (0/1), long_term_illness (0/1), edema (0/1)
+KIDNEY TESTS: serum_creatinine (mg/dL), bun_levels (mg/dL), gfr (mL/min/1.73m²), protein_in_urine (0/1), acr (mg/g)
+LIVER TESTS: total_bilirubin (mg/dL), direct_bilirubin (mg/dL), alkaline_phosphotase (U/L), sgpt (U/L), sgot (U/L), total_proteins (g/dL), albumin (g/dL), ag_ratio
+ELECTROLYTES/BLOOD: sodium (mEq/L), potassium (mEq/L), calcium (mg/dL), phosphorus (mg/dL), hemoglobin (g/dL)
+
+Return ONLY valid JSON. Do not include markdown formatting or explanations.
+`;
+
+// ─── Report Upload Panel ──────────────────────────────────────────────────────
+function ReportUploadPanel({ onFieldsExtracted }) {
+    const [reports, setReports] = useState([]);
+    const [extracting, setExtracting] = useState(false);
+    const [extractResults, setExtractResults] = useState([]);
+    const [dragOver, setDragOver] = useState(false);
+    const fileInputRef = useRef();
+
+    const addFiles = (files) => {
+        const newReports = Array.from(files).map((file) => ({
+            id: Date.now() + Math.random(),
+            file,
+            name: file.name,
+            type: file.type,
+            status: "pending", 
+            extracted: null,
+            error: null,
+            preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
+        }));
+        setReports((prev) => [...prev, ...newReports]);
+    };
+
+    const removeReport = (id) => {
+        setReports((prev) => {
+            const r = prev.find((x) => x.id === id);
+            if (r?.preview) URL.revokeObjectURL(r.preview);
+            return prev.filter((x) => x.id !== id);
+        });
+        setExtractResults((prev) => prev.filter((x) => x.id !== id));
+    };
+
+    const fileToBase64 = (file) =>
+        new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(",")[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+
+    const extractFromReport = async (report) => {
+        setReports((prev) =>
+            prev.map((r) => (r.id === report.id ? { ...r, status: "processing" } : r))
+        );
+
+        try {
+            const base64 = await fileToBase64(report.file);
+            const isPdf = report.type === "application/pdf";
+            const isImage = report.type.startsWith("image/");
+
+            if (!isPdf && !isImage) {
+                throw new Error("Unsupported file type. Use PDF or image files.");
+            }
+
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            
+            const result = await model.generateContent([
+                FIELD_SCHEMA,
+                {
+                    inlineData: {
+                        data: base64,
+                        mimeType: report.type
+                    }
+                }
+            ]);
+
+            const response = await result.response;
+            const text = response.text();
+            
+            // Clean response to ensure it's just JSON
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error("Could not parse response from AI.");
+
+            const extracted = JSON.parse(jsonMatch[0]);
+            const fieldCount = Object.keys(extracted).length;
+
+            setReports((prev) =>
+                prev.map((r) =>
+                    r.id === report.id ? { ...r, status: "done", extracted, fieldCount } : r
+                )
+            );
+            return { id: report.id, extracted };
+        } catch (err) {
+            console.error("Gemini Error:", err);
+            setReports((prev) =>
+                prev.map((r) =>
+                    r.id === report.id ? { ...r, status: "error", error: err.message } : r
+                )
+            );
+            return { id: report.id, extracted: {} };
+        }
+    };
+
+    const handleExtractAll = async () => {
+        const pending = reports.filter((r) => r.status === "pending" || r.status === "error");
+        if (!pending.length) return;
+
+        setExtracting(true);
+        const results = [];
+
+        for (const report of pending) {
+            const result = await extractFromReport(report);
+            results.push(result);
+        }
+
+        setExtractResults((prev) => {
+            const merged = [...prev];
+            results.forEach((r) => {
+                const idx = merged.findIndex((x) => x.id === r.id);
+                if (idx >= 0) merged[idx] = r;
+                else merged.push(r);
+            });
+            return merged;
+        });
+
+        const allExtracted = {};
+        [...extractResults, ...results].forEach(({ extracted }) => {
+            Object.assign(allExtracted, extracted);
+        });
+        onFieldsExtracted(allExtracted);
+        setExtracting(false);
+    };
+
+    const handleApplyAll = () => {
+        const allExtracted = {};
+        reports
+            .filter((r) => r.extracted)
+            .forEach(({ extracted }) => Object.assign(allExtracted, extracted));
+        onFieldsExtracted(allExtracted);
+    };
+
+    const totalExtracted = reports.reduce((acc, r) => acc + (r.fieldCount || 0), 0);
+    const allDone = reports.length > 0 && reports.every((r) => r.status === "done" || r.status === "error");
+
+    return (
+        <div className="rup-panel">
+            <div className="rup-header">
+                <div className="rup-header-left">
+                    <span className="rup-icon">📋</span>
+                    <div>
+                        <div className="rup-title">Auto-fill from Reports</div>
+                        <div className="rup-subtitle">Upload lab reports, blood work, or health documents — Gemini extracts values automatically</div>
+                    </div>
+                </div>
+                {reports.length > 0 && totalExtracted > 0 && (
+                    <div className="rup-badge-count">{totalExtracted} fields found</div>
+                )}
+            </div>
+
+            <div
+                className={`rup-dropzone ${dragOver ? "drag-over" : ""}`}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
+                onClick={() => fileInputRef.current?.click()}
+            >
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,image/*"
+                    multiple
+                    style={{ display: "none" }}
+                    onChange={(e) => addFiles(e.target.files)}
+                />
+                <div className="rup-dz-icon">⬆</div>
+                <div className="rup-dz-text">
+                    {dragOver ? "Drop files here" : "Click or drag to upload reports"}
+                </div>
+                <div className="rup-dz-hint">PDF, JPG, PNG — add multiple reports</div>
+            </div>
+
+            {reports.length > 0 && (
+                <div className="rup-list">
+                    {reports.map((r) => (
+                        <div key={r.id} className={`rup-item rup-item--${r.status}`}>
+                            <div className="rup-item-icon">
+                                {r.type === "application/pdf" ? "📄" : "🖼"}
+                            </div>
+                            <div className="rup-item-info">
+                                <div className="rup-item-name">{r.name}</div>
+                                <div className="rup-item-meta">
+                                    {r.status === "pending" && <span className="rup-status pending">Waiting</span>}
+                                    {r.status === "processing" && (
+                                        <span className="rup-status processing">
+                                            <span className="rup-spin" /> Extracting...
+                                        </span>
+                                    )}
+                                    {r.status === "done" && (
+                                        <span className="rup-status done">✓ {r.fieldCount} fields extracted</span>
+                                    )}
+                                    {r.status === "error" && (
+                                        <span className="rup-status error" title={r.error}>⚠ Failed — click Extract to retry</span>
+                                    )}
+                                </div>
+                            </div>
+                            {r.preview && (
+                                <img src={r.preview} alt="preview" className="rup-thumb" />
+                            )}
+                            <button className="rup-remove" onClick={() => removeReport(r.id)} title="Remove">✕</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {reports.length > 0 && (
+                <div className="rup-actions">
+                    {!allDone && (
+                        <button
+                            className="rup-btn rup-btn--primary"
+                            onClick={handleExtractAll}
+                            disabled={extracting}
+                        >
+                            {extracting ? (
+                                <><span className="rup-spin" /> Extracting...</>
+                            ) : (
+                                <> Extract All Fields</>
+                            )}
+                        </button>
+                    )}
+                    {allDone && totalExtracted > 0 && (
+                        <button className="rup-btn rup-btn--apply" onClick={handleApplyAll}>
+                            ✓ Apply {totalExtracted} Fields to Form
+                        </button>
+                    )}
+                    <button
+                        className="rup-btn rup-btn--ghost"
+                        onClick={() => setReports([])}
+                        disabled={extracting}
+                    >
+                        Clear All
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Main Form ────────────────────────────────────────────────────────────────
 export default function HealthForm({ onResult }) {
     const [formData, setFormData] = useState({
-        // Basic Info
-        age: 50,
-        gender: 1,
-        height: 170,
-        weight: 70,
-        bmi: 24.2,
-
-        // BP & Cardio
-        systolic_bp: 120,
-        diastolic_bp: 80,
-        cholesterol_level: 1,
-        glucose_level: 1,
-
-        // Lifestyle
-        smoking_status: 0,
-        alcohol_consumption: 0,
-        physical_activity_level: 1,
-        gen_health: 3,
-
-        // Medical History
-        stroke: 0,
-        heart_disease: 0,
-        chol_check: 1,
-        diff_walk: 0,
-        family_history_kidney: 0,
-        smoking_family_history: 0,
-
-        // Mental & Physical Wellness
-        mental_health: 0,
-        physical_health: 0,
-        energy_level: 7,
-        stress_level: 0,
-        immune_health: 0,
-
-        // Respiratory
-        breathing_issue: 0,
-        finger_discoloration: 0,
-        exposure_to_pollution: 0,
-        long_term_illness: 0,
-        edema: 0,
-
-        // Kidney Function Tests
-        serum_creatinine: 1.0,
-        bun_levels: 15,
-        gfr: 90,
-        protein_in_urine: 0,
-        acr: 15,
-
-        // Liver Function Tests
-        total_bilirubin: 0.8,
-        direct_bilirubin: 0.3,
-        alkaline_phosphotase: 200,
-        sgpt: 25,
-        sgot: 30,
-        total_proteins: 7.0,
-        albumin: 4.0,
-        ag_ratio: 1.2,
-
-        // Electrolytes & Blood
-        sodium: 140,
-        potassium: 4.0,
-        calcium: 9.5,
-        phosphorus: 3.5,
-        hemoglobin: 14.0,
+        age: 50, gender: 1, height: 170, weight: 70, bmi: 24.2,
+        systolic_bp: 120, diastolic_bp: 80, cholesterol_level: 1, glucose_level: 1,
+        smoking_status: 0, alcohol_consumption: 0, physical_activity_level: 1, gen_health: 3,
+        stroke: 0, heart_disease: 0, chol_check: 1, diff_walk: 0,
+        family_history_kidney: 0, smoking_family_history: 0,
+        mental_health: 0, physical_health: 0, energy_level: 7, stress_level: 0, immune_health: 0,
+        breathing_issue: 0, finger_discoloration: 0, exposure_to_pollution: 0, long_term_illness: 0, edema: 0,
+        serum_creatinine: 1.0, bun_levels: 15, gfr: 90, protein_in_urine: 0, acr: 15,
+        total_bilirubin: 0.8, direct_bilirubin: 0.3, alkaline_phosphotase: 200, sgpt: 25, sgot: 30,
+        total_proteins: 7.0, albumin: 4.0, ag_ratio: 1.2,
+        sodium: 140, potassium: 4.0, calcium: 9.5, phosphorus: 3.5, hemoglobin: 14.0,
     });
 
+    const [autoFilled, setAutoFilled] = useState({}); 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [bpStatus, setBpStatus] = useState({ text: "Normal", className: "bp-normal" });
+    const [fillNotice, setFillNotice] = useState(null);
 
-    // Auto-calculate BMI
     useEffect(() => {
-        const h = formData.height;
-        const w = formData.weight;
-        if (h && w) {
-            const hm = h / 100;
-            const bmi = +(w / (hm * hm)).toFixed(1);
-            if (bmi !== formData.bmi) {
-                setFormData((prev) => ({ ...prev, bmi }));
-            }
+        const { height, weight } = formData;
+        if (height && weight) {
+            const hm = height / 100;
+            const bmi = +(weight / (hm * hm)).toFixed(1);
+            if (bmi !== formData.bmi) setFormData((p) => ({ ...p, bmi }));
         }
     }, [formData.height, formData.weight]);
 
-    // Update BP status
     useEffect(() => {
         const { systolic_bp, diastolic_bp } = formData;
-        if (systolic_bp >= 140 || diastolic_bp >= 95) {
-            setBpStatus({ text: "High BP", className: "bp-high" });
-        } else if (systolic_bp >= 125 || diastolic_bp >= 85) {
-            setBpStatus({ text: "Elevated", className: "bp-elevated" });
-        } else {
-            setBpStatus({ text: "Normal", className: "bp-normal" });
-        }
+        if (systolic_bp >= 140 || diastolic_bp >= 95) setBpStatus({ text: "High BP", className: "bp-high" });
+        else if (systolic_bp >= 125 || diastolic_bp >= 85) setBpStatus({ text: "Elevated", className: "bp-elevated" });
+        else setBpStatus({ text: "Normal", className: "bp-normal" });
     }, [formData.systolic_bp, formData.diastolic_bp]);
 
     const handleChange = (e) => {
         const { name, value, type } = e.target;
-        setFormData((prev) => ({
-            ...prev,
+        setFormData((p) => ({
+            ...p,
             [name]: type === "number" ? parseFloat(value) || 0 : parseInt(value, 10),
         }));
+        setAutoFilled((p) => { const n = { ...p }; delete n[name]; return n; });
+    };
+
+    const handleFieldsExtracted = (extracted) => {
+        const count = Object.keys(extracted).length;
+        if (count === 0) { setFillNotice({ type: "warn", msg: "No recognizable fields found in the reports." }); return; }
+
+        setFormData((p) => ({ ...p, ...extracted }));
+        setAutoFilled(extracted);
+        setFillNotice({ type: "ok", msg: `${count} fields auto-filled from your reports. Highlighted fields were updated — please verify.` });
+        setTimeout(() => setFillNotice(null), 8000);
     };
 
     const handleSubmit = async (e) => {
@@ -111,7 +329,6 @@ export default function HealthForm({ onResult }) {
         setLoading(true);
         setError(null);
 
-        // Derive binary flags from selections
         const high_bp = (formData.systolic_bp >= 140 || formData.diastolic_bp >= 90) ? 1 : 0;
         const high_chol = formData.cholesterol_level >= 2 ? 1 : 0;
         const smoker = formData.smoking_status >= 2 ? 1 : 0;
@@ -123,64 +340,11 @@ export default function HealthForm({ onResult }) {
         const immune_weakness = formData.immune_health >= 2 ? 1 : 0;
 
         const payload = {
-            age: formData.age,
-            gender: formData.gender,
-            height: formData.height,
-            weight: formData.weight,
-            bmi: formData.bmi,
-            systolic_bp: formData.systolic_bp,
-            diastolic_bp: formData.diastolic_bp,
+            ...formData,
             cholesterol: formData.cholesterol_level,
             glucose: formData.glucose_level,
-
-            high_bp,
-            high_chol,
-            smoker,
-            alcohol,
-            heavy_alcohol,
-            physical_activity,
-            active,
-            mental_stress,
-            immune_weakness,
-
-            stroke: formData.stroke,
-            heart_disease: formData.heart_disease,
-            chol_check: formData.chol_check,
-            diff_walk: formData.diff_walk,
-            family_history_kidney: formData.family_history_kidney,
-            smoking_family_history: formData.smoking_family_history,
-
-            gen_health: formData.gen_health,
-            mental_health: formData.mental_health,
-            physical_health: formData.physical_health,
-            energy_level: formData.energy_level,
-
-            breathing_issue: formData.breathing_issue,
-            finger_discoloration: formData.finger_discoloration,
-            exposure_to_pollution: formData.exposure_to_pollution,
-            long_term_illness: formData.long_term_illness,
-            edema: formData.edema,
-
-            serum_creatinine: formData.serum_creatinine,
-            bun_levels: formData.bun_levels,
-            gfr: formData.gfr,
-            protein_in_urine: formData.protein_in_urine,
-            acr: formData.acr,
-
-            total_bilirubin: formData.total_bilirubin,
-            direct_bilirubin: formData.direct_bilirubin,
-            alkaline_phosphotase: formData.alkaline_phosphotase,
-            sgpt: formData.sgpt,
-            sgot: formData.sgot,
-            total_proteins: formData.total_proteins,
-            albumin: formData.albumin,
-            ag_ratio: formData.ag_ratio,
-
-            sodium: formData.sodium,
-            potassium: formData.potassium,
-            calcium: formData.calcium,
-            phosphorus: formData.phosphorus,
-            hemoglobin: formData.hemoglobin,
+            high_bp, high_chol, smoker, alcohol, heavy_alcohol,
+            physical_activity, active, mental_stress, immune_weakness,
         };
 
         try {
@@ -192,12 +356,22 @@ export default function HealthForm({ onResult }) {
             const data = await response.json();
             onResult(data);
         } catch (err) {
-            console.error("Prediction error:", err);
             setError("Failed to connect to prediction server. Make sure Flask is running on port 5000.");
         } finally {
             setLoading(false);
         }
     };
+
+    const F = ({ name, label, children, helper }) => (
+        <div className={`hf-field ${autoFilled[name] !== undefined ? "hf-field--autofilled" : ""}`}>
+            <label>{label}</label>
+            {children}
+            {helper && <span className="hf-helper">{helper}</span>}
+            {autoFilled[name] !== undefined && (
+                <span className="hf-autofill-tag">auto-filled</span>
+            )}
+        </div>
+    );
 
     return (
         <div className="hf-root">
@@ -207,110 +381,97 @@ export default function HealthForm({ onResult }) {
                     <p className="hf-subtitle">Comprehensive health assessment across 5 major organs</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="hf-form">
+                <ReportUploadPanel onFieldsExtracted={handleFieldsExtracted} />
 
-                    {/* ── Basic Information ──────────────────── */}
+                {fillNotice && (
+                    <div className={`hf-fill-notice hf-fill-notice--${fillNotice.type}`}>
+                        {fillNotice.type === "ok" ? "✓" : "⚠"} {fillNotice.msg}
+                    </div>
+                )}
+
+                <div className="hf-divider">
+                    <span>or fill manually</span>
+                </div>
+
+                <form onSubmit={handleSubmit} className="hf-form">
                     <section className="hf-section">
-                        <h2 className="hf-section-title">
-                            <span className="hf-section-icon">👤</span> Basic Information
-                        </h2>
+                        <h2 className="hf-section-title"><span className="hf-section-icon">👤</span> Basic Information</h2>
                         <div className="hf-grid">
-                            <div className="hf-field">
-                                <label>Age (years)</label>
+                            <F name="age" label="Age (years)">
                                 <input type="number" name="age" min="1" max="120" value={formData.age} onChange={handleChange} />
-                            </div>
-                            <div className="hf-field">
-                                <label>Gender</label>
+                            </F>
+                            <F name="gender" label="Gender">
                                 <select name="gender" value={formData.gender} onChange={handleChange}>
                                     <option value={1}>Male</option>
                                     <option value={0}>Female</option>
                                 </select>
-                            </div>
-                            <div className="hf-field">
-                                <label>Height (cm)</label>
+                            </F>
+                            <F name="height" label="Height (cm)">
                                 <input type="number" name="height" min="100" max="250" value={formData.height} onChange={handleChange} />
-                            </div>
-                            <div className="hf-field">
-                                <label>Weight (kg)</label>
+                            </F>
+                            <F name="weight" label="Weight (kg)">
                                 <input type="number" name="weight" min="30" max="200" value={formData.weight} onChange={handleChange} />
-                            </div>
-                            <div className="hf-field">
-                                <label>BMI</label>
+                            </F>
+                            <F name="bmi" label="BMI" helper="Auto-calculated">
                                 <input type="number" name="bmi" step="0.1" value={formData.bmi} readOnly className="hf-readonly" />
-                                <span className="hf-helper">Auto-calculated</span>
-                            </div>
+                            </F>
                         </div>
                     </section>
 
-                    {/* ── Blood Pressure & Heart ─────────────── */}
                     <section className="hf-section">
-                        <h2 className="hf-section-title">
-                            <span className="hf-section-icon">❤️</span> Blood Pressure & Heart Health
-                        </h2>
+                        <h2 className="hf-section-title"><span className="hf-section-icon">❤️</span> Blood Pressure & Heart Health</h2>
                         <div className="hf-grid">
-                            <div className="hf-field">
-                                <label>Systolic BP (mmHg)</label>
+                            <F name="systolic_bp" label="Systolic BP (mmHg)">
                                 <input type="number" name="systolic_bp" min="80" max="200" value={formData.systolic_bp} onChange={handleChange} />
                                 <span className={`hf-badge ${bpStatus.className}`}>{bpStatus.text}</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>Diastolic BP (mmHg)</label>
+                            </F>
+                            <F name="diastolic_bp" label="Diastolic BP (mmHg)">
                                 <input type="number" name="diastolic_bp" min="50" max="130" value={formData.diastolic_bp} onChange={handleChange} />
-                            </div>
-                            <div className="hf-field">
-                                <label>Cholesterol Level</label>
+                            </F>
+                            <F name="cholesterol_level" label="Cholesterol Level" helper="Based on lab tests">
                                 <select name="cholesterol_level" value={formData.cholesterol_level} onChange={handleChange}>
                                     <option value={1}>Normal</option>
                                     <option value={2}>Above Normal</option>
                                     <option value={3}>Well Above Normal</option>
                                 </select>
-                                <span className="hf-helper">Based on lab tests</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>Blood Glucose Level</label>
+                            </F>
+                            <F name="glucose_level" label="Blood Glucose Level">
                                 <select name="glucose_level" value={formData.glucose_level} onChange={handleChange}>
                                     <option value={1}>Normal</option>
                                     <option value={2}>Above Normal</option>
                                     <option value={3}>Well Above Normal</option>
                                 </select>
-                            </div>
+                            </F>
                         </div>
                     </section>
 
-                    {/* ── Lifestyle Habits ───────────────────── */}
                     <section className="hf-section">
-                        <h2 className="hf-section-title">
-                            <span className="hf-section-icon">🚬</span> Lifestyle Habits
-                        </h2>
+                        <h2 className="hf-section-title"><span className="hf-section-icon">🚬</span> Lifestyle Habits</h2>
                         <div className="hf-grid">
-                            <div className="hf-field">
-                                <label>Smoking Status</label>
+                            <F name="smoking_status" label="Smoking Status">
                                 <select name="smoking_status" value={formData.smoking_status} onChange={handleChange}>
                                     <option value={0}>Non-smoker</option>
                                     <option value={1}>Former smoker</option>
                                     <option value={2}>Current smoker</option>
                                 </select>
-                            </div>
-                            <div className="hf-field">
-                                <label>Alcohol Consumption</label>
+                            </F>
+                            <F name="alcohol_consumption" label="Alcohol Consumption">
                                 <select name="alcohol_consumption" value={formData.alcohol_consumption} onChange={handleChange}>
                                     <option value={0}>None</option>
                                     <option value={1}>Occasional (1-2/week)</option>
                                     <option value={2}>Moderate (3-7/week)</option>
                                     <option value={3}>Heavy (8+/week)</option>
                                 </select>
-                            </div>
-                            <div className="hf-field">
-                                <label>Physical Activity Level</label>
+                            </F>
+                            <F name="physical_activity_level" label="Physical Activity Level">
                                 <select name="physical_activity_level" value={formData.physical_activity_level} onChange={handleChange}>
                                     <option value={0}>Sedentary</option>
                                     <option value={1}>Light (1-2 days/week)</option>
                                     <option value={2}>Moderate (3-4 days/week)</option>
                                     <option value={3}>Active (5+ days/week)</option>
                                 </select>
-                            </div>
-                            <div className="hf-field">
-                                <label>General Health Rating</label>
+                            </F>
+                            <F name="gen_health" label="General Health Rating">
                                 <select name="gen_health" value={formData.gen_health} onChange={handleChange}>
                                     <option value={1}>Excellent</option>
                                     <option value={2}>Very Good</option>
@@ -318,259 +479,185 @@ export default function HealthForm({ onResult }) {
                                     <option value={4}>Fair</option>
                                     <option value={5}>Poor</option>
                                 </select>
-                            </div>
+                            </F>
                         </div>
                     </section>
 
-                    {/* ── Medical History ─────────────────────── */}
                     <section className="hf-section">
-                        <h2 className="hf-section-title">
-                            <span className="hf-section-icon">🩺</span> Medical History
-                        </h2>
+                        <h2 className="hf-section-title"><span className="hf-section-icon">🩺</span> Medical History</h2>
                         <div className="hf-grid">
-                            <div className="hf-field">
-                                <label>History of Stroke?</label>
+                            <F name="stroke" label="History of Stroke?">
                                 <select name="stroke" value={formData.stroke} onChange={handleChange}>
                                     <option value={0}>No</option><option value={1}>Yes</option>
                                 </select>
-                            </div>
-                            <div className="hf-field">
-                                <label>Heart Disease or Attack?</label>
+                            </F>
+                            <F name="heart_disease" label="Heart Disease or Attack?">
                                 <select name="heart_disease" value={formData.heart_disease} onChange={handleChange}>
                                     <option value={0}>No</option><option value={1}>Yes</option>
                                 </select>
-                            </div>
-                            <div className="hf-field">
-                                <label>Cholesterol Check (Last 5 yrs)?</label>
+                            </F>
+                            <F name="chol_check" label="Cholesterol Check (Last 5 yrs)?">
                                 <select name="chol_check" value={formData.chol_check} onChange={handleChange}>
                                     <option value={1}>Yes</option><option value={0}>No</option>
                                 </select>
-                            </div>
-                            <div className="hf-field">
-                                <label>Difficulty Walking?</label>
+                            </F>
+                            <F name="diff_walk" label="Difficulty Walking?">
                                 <select name="diff_walk" value={formData.diff_walk} onChange={handleChange}>
                                     <option value={0}>No</option><option value={1}>Yes</option>
                                 </select>
-                            </div>
-                            <div className="hf-field">
-                                <label>Family History of Kidney Disease?</label>
+                            </F>
+                            <F name="family_history_kidney" label="Family History of Kidney Disease?">
                                 <select name="family_history_kidney" value={formData.family_history_kidney} onChange={handleChange}>
                                     <option value={0}>No</option><option value={1}>Yes</option>
                                 </select>
-                            </div>
-                            <div className="hf-field">
-                                <label>Family History of Smoking?</label>
+                            </F>
+                            <F name="smoking_family_history" label="Family History of Smoking?">
                                 <select name="smoking_family_history" value={formData.smoking_family_history} onChange={handleChange}>
                                     <option value={0}>No</option><option value={1}>Yes</option>
                                 </select>
-                            </div>
+                            </F>
                         </div>
                     </section>
 
-                    {/* ── Mental & Physical Wellness ──────────── */}
                     <section className="hf-section">
-                        <h2 className="hf-section-title">
-                            <span className="hf-section-icon">🧠</span> Mental & Physical Wellness
-                        </h2>
+                        <h2 className="hf-section-title"><span className="hf-section-icon">🧠</span> Mental & Physical Wellness</h2>
                         <div className="hf-grid">
-                            <div className="hf-field">
-                                <label>Days of Poor Mental Health (past 30)</label>
+                            <F name="mental_health" label="Days of Poor Mental Health (past 30)">
                                 <input type="number" name="mental_health" min="0" max="30" value={formData.mental_health} onChange={handleChange} />
-                            </div>
-                            <div className="hf-field">
-                                <label>Days of Poor Physical Health (past 30)</label>
+                            </F>
+                            <F name="physical_health" label="Days of Poor Physical Health (past 30)">
                                 <input type="number" name="physical_health" min="0" max="30" value={formData.physical_health} onChange={handleChange} />
-                            </div>
-                            <div className="hf-field">
-                                <label>Energy Level (1-10)</label>
+                            </F>
+                            <F name="energy_level" label="Energy Level (1-10)" helper="1=Very Low, 10=Very High">
                                 <input type="number" name="energy_level" min="1" max="10" value={formData.energy_level} onChange={handleChange} />
-                                <span className="hf-helper">1=Very Low, 10=Very High</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>Stress Level</label>
+                            </F>
+                            <F name="stress_level" label="Stress Level">
                                 <select name="stress_level" value={formData.stress_level} onChange={handleChange}>
                                     <option value={0}>Low</option>
                                     <option value={1}>Moderate</option>
                                     <option value={2}>High</option>
                                 </select>
-                            </div>
-                            <div className="hf-field">
-                                <label>Immune System Health</label>
+                            </F>
+                            <F name="immune_health" label="Immune System Health">
                                 <select name="immune_health" value={formData.immune_health} onChange={handleChange}>
                                     <option value={0}>Strong</option>
                                     <option value={1}>Average</option>
                                     <option value={2}>Weak</option>
                                 </select>
-                            </div>
+                            </F>
                         </div>
                     </section>
 
-                    {/* ── Respiratory & Environmental ─────────── */}
                     <section className="hf-section">
-                        <h2 className="hf-section-title">
-                            <span className="hf-section-icon">🫁</span> Respiratory & Environmental Factors
-                        </h2>
+                        <h2 className="hf-section-title"><span className="hf-section-icon">🫁</span> Respiratory & Environmental Factors</h2>
                         <div className="hf-grid">
-                            <div className="hf-field">
-                                <label>Breathing Issues?</label>
+                            <F name="breathing_issue" label="Breathing Issues?">
                                 <select name="breathing_issue" value={formData.breathing_issue} onChange={handleChange}>
                                     <option value={0}>No</option><option value={1}>Yes</option>
                                 </select>
-                            </div>
-                            <div className="hf-field">
-                                <label>Finger Discoloration?</label>
+                            </F>
+                            <F name="finger_discoloration" label="Finger Discoloration?">
                                 <select name="finger_discoloration" value={formData.finger_discoloration} onChange={handleChange}>
                                     <option value={0}>No</option><option value={1}>Yes</option>
                                 </select>
-                            </div>
-                            <div className="hf-field">
-                                <label>Regular Pollution Exposure?</label>
+                            </F>
+                            <F name="exposure_to_pollution" label="Regular Pollution Exposure?">
                                 <select name="exposure_to_pollution" value={formData.exposure_to_pollution} onChange={handleChange}>
                                     <option value={0}>No</option><option value={1}>Yes</option>
                                 </select>
-                            </div>
-                            <div className="hf-field">
-                                <label>Chronic/Long-term Illness?</label>
+                            </F>
+                            <F name="long_term_illness" label="Chronic/Long-term Illness?">
                                 <select name="long_term_illness" value={formData.long_term_illness} onChange={handleChange}>
                                     <option value={0}>No</option><option value={1}>Yes</option>
                                 </select>
-                            </div>
-                            <div className="hf-field">
-                                <label>Swelling/Edema?</label>
+                            </F>
+                            <F name="edema" label="Swelling/Edema?">
                                 <select name="edema" value={formData.edema} onChange={handleChange}>
                                     <option value={0}>No</option><option value={1}>Yes</option>
                                 </select>
-                            </div>
+                            </F>
                         </div>
                     </section>
 
-                    {/* ── Kidney Function Tests ──────────────── */}
                     <section className="hf-section">
-                        <h2 className="hf-section-title">
-                            <span className="hf-section-icon">🔬</span> Kidney Function Tests
-                        </h2>
+                        <h2 className="hf-section-title"><span className="hf-section-icon">🔬</span> Kidney Function Tests</h2>
                         <div className="hf-grid">
-                            <div className="hf-field">
-                                <label>Serum Creatinine (mg/dL)</label>
+                            <F name="serum_creatinine" label="Serum Creatinine (mg/dL)" helper="Normal: 0.6–1.2">
                                 <input type="number" name="serum_creatinine" step="0.1" value={formData.serum_creatinine} onChange={handleChange} />
-                                <span className="hf-helper">Normal: 0.6-1.2</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>BUN Levels (mg/dL)</label>
+                            </F>
+                            <F name="bun_levels" label="BUN Levels (mg/dL)" helper="Normal: 7–20">
                                 <input type="number" name="bun_levels" step="0.1" value={formData.bun_levels} onChange={handleChange} />
-                                <span className="hf-helper">Normal: 7-20</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>GFR (mL/min/1.73m²)</label>
+                            </F>
+                            <F name="gfr" label="GFR (mL/min/1.73m²)" helper="Normal: >90">
                                 <input type="number" name="gfr" step="0.1" value={formData.gfr} onChange={handleChange} />
-                                <span className="hf-helper">Normal: &gt;90</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>Protein in Urine?</label>
+                            </F>
+                            <F name="protein_in_urine" label="Protein in Urine?">
                                 <select name="protein_in_urine" value={formData.protein_in_urine} onChange={handleChange}>
                                     <option value={0}>No</option><option value={1}>Yes</option>
                                 </select>
-                            </div>
-                            <div className="hf-field">
-                                <label>ACR (mg/g)</label>
+                            </F>
+                            <F name="acr" label="ACR (mg/g)" helper="Normal: <30">
                                 <input type="number" name="acr" step="0.1" value={formData.acr} onChange={handleChange} />
-                                <span className="hf-helper">Normal: &lt;30</span>
-                            </div>
+                            </F>
                         </div>
                     </section>
 
-                    {/* ── Liver Function Tests ───────────────── */}
                     <section className="hf-section">
-                        <h2 className="hf-section-title">
-                            <span className="hf-section-icon">🧪</span> Liver Function Tests
-                        </h2>
+                        <h2 className="hf-section-title"><span className="hf-section-icon">🧪</span> Liver Function Tests</h2>
                         <div className="hf-grid">
-                            <div className="hf-field">
-                                <label>Total Bilirubin (mg/dL)</label>
+                            <F name="total_bilirubin" label="Total Bilirubin (mg/dL)" helper="Normal: 0.1–1.2">
                                 <input type="number" name="total_bilirubin" step="0.1" value={formData.total_bilirubin} onChange={handleChange} />
-                                <span className="hf-helper">Normal: 0.1-1.2</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>Direct Bilirubin (mg/dL)</label>
+                            </F>
+                            <F name="direct_bilirubin" label="Direct Bilirubin (mg/dL)" helper="Normal: 0–0.3">
                                 <input type="number" name="direct_bilirubin" step="0.1" value={formData.direct_bilirubin} onChange={handleChange} />
-                                <span className="hf-helper">Normal: 0-0.3</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>Alkaline Phosphatase (U/L)</label>
+                            </F>
+                            <F name="alkaline_phosphotase" label="Alkaline Phosphatase (U/L)" helper="Normal: 44–147">
                                 <input type="number" name="alkaline_phosphotase" value={formData.alkaline_phosphotase} onChange={handleChange} />
-                                <span className="hf-helper">Normal: 44-147</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>SGPT/ALT (U/L)</label>
+                            </F>
+                            <F name="sgpt" label="SGPT/ALT (U/L)" helper="Normal: 7–56">
                                 <input type="number" name="sgpt" value={formData.sgpt} onChange={handleChange} />
-                                <span className="hf-helper">Normal: 7-56</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>SGOT/AST (U/L)</label>
+                            </F>
+                            <F name="sgot" label="SGOT/AST (U/L)" helper="Normal: 10–40">
                                 <input type="number" name="sgot" value={formData.sgot} onChange={handleChange} />
-                                <span className="hf-helper">Normal: 10-40</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>Total Proteins (g/dL)</label>
+                            </F>
+                            <F name="total_proteins" label="Total Proteins (g/dL)" helper="Normal: 6.0–8.3">
                                 <input type="number" name="total_proteins" step="0.1" value={formData.total_proteins} onChange={handleChange} />
-                                <span className="hf-helper">Normal: 6.0-8.3</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>Albumin (g/dL)</label>
+                            </F>
+                            <F name="albumin" label="Albumin (g/dL)" helper="Normal: 3.5–5.5">
                                 <input type="number" name="albumin" step="0.1" value={formData.albumin} onChange={handleChange} />
-                                <span className="hf-helper">Normal: 3.5-5.5</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>A/G Ratio</label>
+                            </F>
+                            <F name="ag_ratio" label="A/G Ratio" helper="Normal: 1.0–2.5">
                                 <input type="number" name="ag_ratio" step="0.1" value={formData.ag_ratio} onChange={handleChange} />
-                                <span className="hf-helper">Normal: 1.0-2.5</span>
-                            </div>
+                            </F>
                         </div>
                     </section>
 
-                    {/* ── Electrolytes & Blood ───────────────── */}
                     <section className="hf-section">
-                        <h2 className="hf-section-title">
-                            <span className="hf-section-icon">⚡</span> Electrolytes & Blood Tests
-                        </h2>
+                        <h2 className="hf-section-title"><span className="hf-section-icon">⚡</span> Electrolytes & Blood Tests</h2>
                         <div className="hf-grid">
-                            <div className="hf-field">
-                                <label>Sodium (mEq/L)</label>
+                            <F name="sodium" label="Sodium (mEq/L)" helper="Normal: 136–145">
                                 <input type="number" name="sodium" step="0.1" value={formData.sodium} onChange={handleChange} />
-                                <span className="hf-helper">Normal: 136-145</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>Potassium (mEq/L)</label>
+                            </F>
+                            <F name="potassium" label="Potassium (mEq/L)" helper="Normal: 3.5–5.0">
                                 <input type="number" name="potassium" step="0.1" value={formData.potassium} onChange={handleChange} />
-                                <span className="hf-helper">Normal: 3.5-5.0</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>Calcium (mg/dL)</label>
+                            </F>
+                            <F name="calcium" label="Calcium (mg/dL)" helper="Normal: 8.5–10.2">
                                 <input type="number" name="calcium" step="0.1" value={formData.calcium} onChange={handleChange} />
-                                <span className="hf-helper">Normal: 8.5-10.2</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>Phosphorus (mg/dL)</label>
+                            </F>
+                            <F name="phosphorus" label="Phosphorus (mg/dL)" helper="Normal: 2.5–4.5">
                                 <input type="number" name="phosphorus" step="0.1" value={formData.phosphorus} onChange={handleChange} />
-                                <span className="hf-helper">Normal: 2.5-4.5</span>
-                            </div>
-                            <div className="hf-field">
-                                <label>Hemoglobin (g/dL)</label>
+                            </F>
+                            <F name="hemoglobin" label="Hemoglobin (g/dL)" helper="Normal: 12–17">
                                 <input type="number" name="hemoglobin" step="0.1" value={formData.hemoglobin} onChange={handleChange} />
-                                <span className="hf-helper">Normal: 12-17</span>
-                            </div>
+                            </F>
                         </div>
                     </section>
 
-                    {/* ── Submit ─────────────────────────────── */}
                     <button type="submit" className="hf-submit" disabled={loading}>
                         {loading ? (
-                            <span className="hf-loading">
-                                <span className="hf-spinner" />
-                                Analyzing your health data...
-                            </span>
+                            <span className="hf-loading"><span className="hf-spinner" /> Analyzing your health data...</span>
                         ) : (
-                            <>🔍 Analyze Health Risk</>
+                            "Analyze Health Risk"
                         )}
                     </button>
 
