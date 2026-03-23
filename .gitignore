@@ -1,0 +1,66 @@
+# -------------------------
+# Frontend
+# -------------------------
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+*.local
+
+# -------------------------
+# Environment files
+# -------------------------
+.env
+.env.*
+
+# -------------------------
+# Backend / Python
+# -------------------------
+backend/envv/
+backend/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# -------------------------
+# Models
+# Ignore all model files by default
+# -------------------------
+backend/model/*
+
+# Allow only models actually used by app.py
+!backend/model/diabetes_model_gpu.pkl
+!backend/model/heart_model_gpu.pkl
+!backend/model/kidney_model_gpu.pkl
+!backend/model/liver_model_gpu_calibrated.pkl
+!backend/model/lung_model_gpu_calibrated.pkl
+!backend/model/diabetes_scaler.pkl
+!backend/model/heart_scaler.pkl
+!backend/model/kidney_scaler.pkl
+
+# -------------------------
+# IDE / Editor
+# -------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# -------------------------
+# OS files
+# -------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# -------------------------
+# Logs
+# -------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
