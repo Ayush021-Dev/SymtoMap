@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 * {
     box-sizing: border-box;
@@ -8,9 +8,9 @@
 
 body {
     overflow: hidden;
-    background: #020609;
-    font-family: 'Exo 2', sans-serif;
-    color: #c8deff;
+    background: #0f1117;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #e2e8f0;
 }
 
 .layout-root {
@@ -20,46 +20,15 @@ body {
     overflow: hidden;
 }
 
-.layout-bg-canvas {
+/* Clean gradient background */
+.layout-bg {
     position: absolute;
     inset: 0;
     z-index: 0;
-}
-
-/* HUD corner brackets */
-.hud-corner {
-    position: absolute;
-    width: 28px;
-    height: 28px;
-    z-index: 2;
-}
-
-.hud-tl {
-    top: 12px;
-    left: 12px;
-    border-top: 2px solid rgba(60, 140, 255, 0.6);
-    border-left: 2px solid rgba(60, 140, 255, 0.6);
-}
-
-.hud-tr {
-    top: 12px;
-    right: 12px;
-    border-top: 2px solid rgba(60, 140, 255, 0.6);
-    border-right: 2px solid rgba(60, 140, 255, 0.6);
-}
-
-.hud-bl {
-    bottom: 12px;
-    left: 12px;
-    border-bottom: 2px solid rgba(60, 140, 255, 0.6);
-    border-left: 2px solid rgba(60, 140, 255, 0.6);
-}
-
-.hud-br {
-    bottom: 12px;
-    right: 12px;
-    border-bottom: 2px solid rgba(60, 140, 255, 0.6);
-    border-right: 2px solid rgba(60, 140, 255, 0.6);
+    background:
+        radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(99, 102, 241, 0.04) 0%, transparent 50%),
+        linear-gradient(180deg, #0f1117 0%, #131620 50%, #0f1117 100%);
 }
 
 /* Header */
@@ -69,66 +38,52 @@ body {
     left: 0;
     right: 0;
     z-index: 10;
-    height: 56px;
+    height: 54px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 40px;
-    background: linear-gradient(180deg, rgba(5, 15, 35, 0.95) 0%, rgba(5, 15, 35, 0) 100%);
-    border-bottom: 1px solid rgba(60, 140, 255, 0.15);
+    padding: 0 32px;
+    background: rgba(15, 17, 23, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .header-logo {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-family: 'Rajdhani', sans-serif;
 }
 
-.logo-cross {
-    font-size: 22px;
-    color: #3b8aff;
-    filter: drop-shadow(0 0 8px rgba(59, 138, 255, 0.8));
+.logo-mark {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    border-radius: 8px;
+    color: #fff;
 }
 
 .logo-text {
-    font-size: 20px;
+    font-size: 17px;
     font-weight: 700;
-    letter-spacing: 0.12em;
-    color: #e8f2ff;
-    text-transform: uppercase;
+    color: #f1f5f9;
+    letter-spacing: -0.01em;
 }
 
-.header-status {
+.header-right {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    color: rgba(100, 200, 120, 0.85);
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 600;
+    gap: 12px;
 }
 
-.status-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #44ee88;
-    box-shadow: 0 0 8px #44ee88;
-    animation: blink 2s ease-in-out infinite;
-}
-
-@keyframes blink {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.3;
-    }
+.header-tag {
+    font-size: 12px;
+    font-weight: 500;
+    color: #64748b;
+    letter-spacing: 0.01em;
 }
 
 /* Content */
@@ -136,8 +91,8 @@ body {
     position: absolute;
     inset: 0;
     z-index: 5;
-    padding-top: 56px;
-    padding-bottom: 32px;
+    padding-top: 54px;
+    padding-bottom: 34px;
     display: flex;
     align-items: stretch;
     justify-content: center;
@@ -150,17 +105,20 @@ body {
     left: 0;
     right: 0;
     z-index: 10;
-    height: 32px;
+    height: 34px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 48px;
-    font-size: 10px;
-    letter-spacing: 0.2em;
-    color: rgba(80, 130, 200, 0.5);
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 500;
-    background: linear-gradient(0deg, rgba(5, 15, 35, 0.9) 0%, rgba(5, 15, 35, 0) 100%);
-    border-top: 1px solid rgba(60, 140, 255, 0.08);
-    text-transform: uppercase;
+    gap: 8px;
+    font-size: 11px;
+    color: #475569;
+    font-weight: 400;
+    background: rgba(15, 17, 23, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.footer-sep {
+    color: #334155;
 }

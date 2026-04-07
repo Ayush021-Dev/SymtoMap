@@ -1,39 +1,44 @@
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* ─── Root Layout ─────────────────────────────────────────────────────────── */
+/* ─── Container ───────────────────────────────────────────────────────────── */
 
-.hb-root {
+.hb-container {
     width: 100%;
     height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     position: relative;
-    font-family: 'Exo 2', sans-serif;
-    color: #c8deff;
+    overflow: hidden;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #e2e8f0;
+}
+
+.hb-bg {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse at 40% 40%, rgba(99, 102, 241, 0.04) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 70%, rgba(59, 130, 246, 0.03) 0%, transparent 50%),
+        linear-gradient(180deg, #0f1117 0%, #131620 50%, #0f1117 100%);
+    pointer-events: none;
 }
 
 /* ─── 3D Canvas ───────────────────────────────────────────────────────────── */
 
-.hb-canvas-wrap {
-    flex: 1;
-    height: 100%;
-    max-width: 600px;
-    position: relative;
+.hb-canvas-area {
+    position: absolute;
+    inset: 0;
 }
 
 .canvas-hint {
     position: absolute;
-    bottom: 12px;
+    bottom: 16px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 11px;
-    letter-spacing: 0.15em;
-    color: rgba(100, 160, 255, 0.4);
-    font-family: 'Rajdhani', sans-serif;
-    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #475569;
     white-space: nowrap;
     pointer-events: none;
+    z-index: 10;
 }
 
 /* ─── Hover chip ──────────────────────────────────────────────────────────── */
@@ -43,21 +48,20 @@
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(5, 15, 40, 0.88);
-    border: 1px solid rgba(60, 140, 255, 0.35);
-    border-radius: 20px;
-    padding: 6px 18px;
+    background: rgba(15, 17, 23, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 8px 18px;
     font-size: 13px;
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    color: #c8deff;
+    font-weight: 500;
+    color: #e2e8f0;
     display: flex;
     gap: 8px;
     align-items: center;
     pointer-events: none;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(12px);
     animation: chipIn 0.15s ease;
+    z-index: 20;
 }
 
 @keyframes chipIn {
@@ -65,7 +69,6 @@
         opacity: 0;
         transform: translateX(-50%) translateY(-6px);
     }
-
     to {
         opacity: 1;
         transform: translateX(-50%) translateY(0);
@@ -73,37 +76,60 @@
 }
 
 .hover-chip-risk {
-    font-weight: 700;
+    font-weight: 600;
 }
 
 /* ─── Risk Legend ─────────────────────────────────────────────────────────── */
 
+.hb-legend-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    z-index: 10;
+    background: linear-gradient(90deg, rgba(15, 17, 23, 0.7) 0%, rgba(15, 17, 23, 0.3) 80%, transparent 100%);
+}
+
 .risk-legend {
-    width: 220px;
-    flex-shrink: 0;
-    padding: 24px 20px;
-    background: rgba(5, 12, 30, 0.7);
-    border: 1px solid rgba(60, 140, 255, 0.15);
-    border-radius: 4px;
-    backdrop-filter: blur(12px);
-    margin: 20px 0 20px 20px;
+    width: 240px;
+    padding: 28px 22px;
+    display: flex;
+    flex-direction: column;
 }
 
 .legend-title {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.22em;
-    color: rgba(100, 160, 255, 0.6);
-    margin-bottom: 20px;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    margin-bottom: 24px;
     text-transform: uppercase;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .legend-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    margin-bottom: 4px;
+}
+
+.legend-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.legend-row--active {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.06);
 }
 
 .legend-dot {
@@ -114,13 +140,11 @@
 }
 
 .legend-name {
-    font-size: 12px;
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 600;
-    color: #a8c4f0;
-    width: 56px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #94a3b8;
+    width: 64px;
     flex-shrink: 0;
-    letter-spacing: 0.05em;
 }
 
 .legend-bar-wrap {
@@ -129,8 +153,8 @@
 
 .legend-bar {
     width: 100%;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.07);
+    height: 3px;
+    background: rgba(255, 255, 255, 0.06);
     border-radius: 2px;
     overflow: hidden;
 }
@@ -142,12 +166,37 @@
 }
 
 .legend-pct {
-    font-size: 11px;
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 700;
-    width: 36px;
+    font-size: 13px;
+    font-weight: 600;
+    width: 42px;
     text-align: right;
     flex-shrink: 0;
+}
+
+/* ─── Back button ─────────────────────────────────────────────────────────── */
+
+.hb-back-btn {
+    position: absolute;
+    top: 14px;
+    left: 24px;
+    z-index: 20;
+    padding: 8px 20px;
+    background: rgba(15, 17, 23, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    color: #94a3b8;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    backdrop-filter: blur(12px);
+    transition: all 0.2s;
+}
+
+.hb-back-btn:hover {
+    color: #e2e8f0;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(15, 17, 23, 0.95);
 }
 
 /* ─── Dialog Overlay ──────────────────────────────────────────────────────── */
@@ -156,125 +205,78 @@
     position: fixed;
     inset: 0;
     z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-right: 5vw;
-    background: rgba(0, 5, 20, 0.45);
-    backdrop-filter: none;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
     animation: overlayIn 0.2s ease;
 }
 
 @keyframes overlayIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-.dialog-wrapper {
+/* ─── Organ Dialog ────────────────────────────────────────────────────────── */
+
+.organ-dialog {
+    position: fixed;
+    top: 50%;
+    right: 5vw;
+    transform: translateY(-50%);
+    z-index: 105;
+    width: 360px;
+    background: linear-gradient(160deg, #161921 0%, #111318 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
     animation: dialogIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes dialogIn {
     from {
         opacity: 0;
-        transform: translateX(40px) scale(0.96);
+        transform: translateY(-50%) translateX(20px) scale(0.96);
     }
-
     to {
         opacity: 1;
-        transform: translateX(0) scale(1);
+        transform: translateY(-50%) translateX(0) scale(1);
     }
-}
-
-/* ─── Organ Dialog ────────────────────────────────────────────────────────── */
-
-.organ-dialog {
-    width: 360px;
-    background: linear-gradient(160deg, rgba(6, 16, 40, 0.97) 0%, rgba(4, 10, 28, 0.97) 100%);
-    border: 1px solid rgba(60, 140, 255, 0.25);
-    border-radius: 4px;
-    position: relative;
-    overflow: hidden;
-    box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-        0 30px 80px rgba(0, 0, 0, 0.8),
-        0 0 40px rgba(var(--risk-color), 0.08);
-}
-
-/* Corner bracket accents */
-.dc {
-    position: absolute;
-    width: 14px;
-    height: 14px;
-    z-index: 10;
-}
-
-.dc-tl {
-    top: 6px;
-    left: 6px;
-    border-top: 1.5px solid var(--risk-color);
-    border-left: 1.5px solid var(--risk-color);
-}
-
-.dc-tr {
-    top: 6px;
-    right: 6px;
-    border-top: 1.5px solid var(--risk-color);
-    border-right: 1.5px solid var(--risk-color);
-}
-
-.dc-bl {
-    bottom: 6px;
-    left: 6px;
-    border-bottom: 1.5px solid var(--risk-color);
-    border-left: 1.5px solid var(--risk-color);
-}
-
-.dc-br {
-    bottom: 6px;
-    right: 6px;
-    border-bottom: 1.5px solid var(--risk-color);
-    border-right: 1.5px solid var(--risk-color);
 }
 
 /* Close button */
 .dialog-close {
     position: absolute;
-    top: 12px;
+    top: 14px;
     right: 16px;
     z-index: 20;
     background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(180, 210, 255, 0.7);
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
     font-size: 12px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+    font-family: sans-serif;
 }
 
 .dialog-close:hover {
-    background: rgba(255, 60, 60, 0.2);
-    border-color: rgba(255, 60, 60, 0.4);
-    color: #ff6666;
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
 }
 
 /* 3D viewer */
 .dialog-viewer {
     width: 100%;
-    height: 220px;
+    height: 240px;
     position: relative;
-    background: radial-gradient(ellipse at center, rgba(10, 25, 60, 0.8) 0%, rgba(2, 6, 18, 1) 100%);
-    border-bottom: 1px solid rgba(60, 140, 255, 0.12);
+    background: radial-gradient(ellipse at center, rgba(15, 20, 40, 0.8) 0%, #111318 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .viewer-glow {
@@ -285,37 +287,41 @@
 
 /* Info section */
 .dialog-info {
-    padding: 20px 24px 24px;
+    padding: 22px 24px 24px;
 }
 
 .dialog-title {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 30px;
+    font-family: 'Inter', sans-serif;
+    font-size: 26px;
     font-weight: 700;
-    color: #e8f2ff;
-    letter-spacing: 0.04em;
-    margin-bottom: 8px;
+    color: #f1f5f9;
+    letter-spacing: -0.02em;
+    margin-bottom: 0;
     line-height: 1;
+}
+
+.dialog-divider {
+    height: 1px;
+    margin: 14px 0;
 }
 
 .dialog-risk-line {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
     margin-bottom: 10px;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .drl-label {
-    color: #a0b8d8;
+    color: #94a3b8;
     font-weight: 500;
 }
 
 .drl-value {
-    font-family: 'Rajdhani', sans-serif;
     font-weight: 700;
-    font-size: 15px;
-    letter-spacing: 0.06em;
+    font-size: 14px;
+    letter-spacing: 0.03em;
 }
 
 /* Risk bar */
@@ -323,28 +329,27 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 18px;
+    margin-bottom: 20px;
 }
 
 .dialog-bar {
     flex: 1;
-    height: 5px;
-    background: rgba(255, 255, 255, 0.07);
-    border-radius: 3px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 2px;
     overflow: hidden;
 }
 
 .dialog-bar-fill {
     height: 100%;
-    border-radius: 3px;
+    border-radius: 2px;
     transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dialog-pct {
-    font-family: 'Rajdhani', sans-serif;
     font-weight: 700;
     font-size: 14px;
-    width: 40px;
+    width: 42px;
     text-align: right;
 }
 
@@ -354,17 +359,19 @@
 }
 
 .issues-heading {
-    font-size: 13px;
-    color: #a0b8d8;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
     margin-bottom: 10px;
-    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .issues-list {
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 8px;
 }
 
 .issues-list li {
@@ -372,12 +379,12 @@
     align-items: center;
     gap: 10px;
     font-size: 13px;
-    color: #c0d4f0;
+    color: #cbd5e1;
 }
 
 .issue-bullet {
-    width: 7px;
-    height: 7px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     flex-shrink: 0;
 }
@@ -385,43 +392,239 @@
 /* View Details button */
 .dialog-btn {
     width: 100%;
-    padding: 13px;
-    background: linear-gradient(135deg, rgba(30, 80, 180, 0.9), rgba(20, 60, 140, 0.9));
-    border: 1px solid rgba(80, 150, 255, 0.4);
-    border-radius: 3px;
-    color: #e0eeff;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 15px;
+    padding: 12px;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
     cursor: pointer;
-    transition: all 0.25s;
-    position: relative;
-    overflow: hidden;
-}
-
-.dialog-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent);
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-
-.dialog-btn:hover::before {
-    opacity: 1;
+    transition: all 0.2s;
 }
 
 .dialog-btn:hover {
-    border-color: rgba(80, 150, 255, 0.7);
-    box-shadow: 0 0 20px rgba(60, 120, 255, 0.3);
+    opacity: 0.9;
     transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
 }
 
-/* Back button */
-.hb-back-btn:hover {
-    border-color: rgba(60, 140, 255, 0.7) !important;
-    box-shadow: 0 0 16px rgba(60, 140, 255, 0.25) !important;
+/* ─── Full Analysis Modal ─────────────────────────────────────────────────── */
+
+.analysis-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    animation: overlayIn 0.2s ease;
+}
+
+.analysis-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 210;
+    width: 580px;
+    max-width: 92vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    background: #161921;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+    animation: analysisIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.08) transparent;
+}
+
+.analysis-modal::-webkit-scrollbar { width: 4px; }
+.analysis-modal::-webkit-scrollbar-track { background: transparent; }
+.analysis-modal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+@keyframes analysisIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.94);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+.analysis-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 20;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-family: sans-serif;
+}
+
+.analysis-close:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.analysis-header {
+    padding: 32px 32px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.analysis-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.analysis-organ-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #f1f5f9;
+    letter-spacing: -0.02em;
+}
+
+.analysis-risk-badge {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.analysis-risk-meter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.analysis-meter-bar {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.analysis-meter-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.analysis-meter-value {
+    font-size: 18px;
+    font-weight: 700;
+    width: 50px;
+    text-align: right;
+}
+
+.analysis-body {
+    padding: 24px 32px 32px;
+}
+
+.analysis-section {
+    margin-bottom: 28px;
+}
+
+.analysis-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin-bottom: 16px;
+}
+
+.analysis-section-icon {
+    font-size: 16px;
+}
+
+.analysis-issues-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.analysis-issue-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    font-size: 14px;
+    color: #cbd5e1;
+}
+
+.analysis-issue-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.analysis-recommendations {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.analysis-rec-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 16px;
+    background: rgba(99, 102, 241, 0.03);
+    border: 1px solid rgba(99, 102, 241, 0.08);
+    border-radius: 10px;
+    font-size: 13px;
+    color: #cbd5e1;
+    line-height: 1.5;
+}
+
+.analysis-rec-number {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(99, 102, 241, 0.12);
+    color: #818cf8;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.analysis-disclaimer {
+    padding: 16px 18px;
+    background: rgba(245, 158, 11, 0.04);
+    border: 1px solid rgba(245, 158, 11, 0.1);
+    border-radius: 10px;
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.6;
+}
+
+.analysis-disclaimer strong {
+    color: #f59e0b;
 }

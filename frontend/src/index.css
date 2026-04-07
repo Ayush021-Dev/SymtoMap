@@ -1,9 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 :root {
-  font-family: 'Exo 2', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: rgba(200, 222, 255, 0.87);
-  background-color: #020609;
+  color: #e2e8f0;
+  background-color: #0f1117;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -21,7 +23,7 @@ body {
   overflow: hidden;
   min-width: 320px;
   min-height: 100vh;
-  background: #020609;
+  background: #0f1117;
 }
 
 #root {
@@ -31,18 +33,18 @@ body {
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(5, 15, 35, 0.5);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(60, 140, 255, 0.3);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(60, 140, 255, 0.5);
+  background: rgba(255, 255, 255, 0.2);
 }

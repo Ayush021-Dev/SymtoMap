@@ -316,12 +316,11 @@ export default function HealthForm({ onResult }) {
 
     const handleFieldsExtracted = (extracted) => {
         const count = Object.keys(extracted).length;
-        if (count === 0) { setFillNotice({ type: "warn", msg: "No recognizable fields found in the reports." }); return; }
+        if (count === 0) { setFillNotice({ type: "warn", msg: "No recognizable fields found in the uploaded reports." }); return; }
 
         setFormData((p) => ({ ...p, ...extracted }));
         setAutoFilled(extracted);
-        setFillNotice({ type: "ok", msg: `${count} fields auto-filled from your reports. Highlighted fields were updated — please verify.` });
-        setTimeout(() => setFillNotice(null), 8000);
+        setFillNotice({ type: "ok", msg: `${count} fields were auto-filled from your reports.`, count });
     };
 
     const handleSubmit = async (e) => {
@@ -368,7 +367,7 @@ export default function HealthForm({ onResult }) {
             {children}
             {helper && <span className="hf-helper">{helper}</span>}
             {autoFilled[name] !== undefined && (
-                <span className="hf-autofill-tag">auto-filled</span>
+                <span className="hf-autofill-tag">AI extracted</span>
             )}
         </div>
     );
@@ -385,7 +384,11 @@ export default function HealthForm({ onResult }) {
 
                 {fillNotice && (
                     <div className={`hf-fill-notice hf-fill-notice--${fillNotice.type}`}>
-                        {fillNotice.type === "ok" ? "✓" : "⚠"} {fillNotice.msg}
+                        <div className="hf-notice-content">
+                            <span className="hf-notice-icon">{fillNotice.type === "ok" ? "✅" : "⚠️"}</span>
+                            <span>{fillNotice.msg} {fillNotice.type === "ok" && <span style={{opacity: 0.7}}>Highlighted fields were updated — please verify.</span>}</span>
+                        </div>
+                        <button className="hf-notice-dismiss" onClick={() => setFillNotice(null)}>Dismiss</button>
                     </div>
                 )}
 

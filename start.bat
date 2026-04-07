@@ -1,36 +1,63 @@
 @echo off
-title SymtoMap Combined - Launcher
-color 0B
+title SymtoMap - Starting...
+color 0A
 
+echo ============================================
+echo        SymtoMap - Health Risk Analyzer
+echo ============================================
 echo.
-echo  ============================================
-echo       SYMPTOMAP - Multi-Organ Risk Predictor
-echo  ============================================
-echo.
 
-:: Get the directory where this bat file lives
-cd /d "%~dp0"
+:: Get the directory where this script is located
+set "ROOT_DIR=%~dp0"
 
-echo  [1/3] Starting Flask Backend (port 5000)...
-start "SymtoMap - Flask Backend" cmd /k "cd /d ""%~dp0backend"" && call envv\Scripts\activate && python app.py"
+:: ──────────────────────────────────────────────
+::  Start Flask Backend
+:: ──────────────────────────────────────────────
+echo [1/2] Starting Flask backend on port 5000...
+cd /d "%ROOT_DIR%backend"
 
-echo  [2/3] Starting Vite Frontend (port 5173)...
-start "SymtoMap - Vite Frontend" cmd /k "cd /d ""%~dp0frontend"" && npm run dev"
+if exist "venv\Scripts\activate.bat" (
+    echo       Activating virtual environment...
+    echo       Installing backend dependencies...
+    start "SymtoMap Backend" cmd /k "title SymtoMap Backend & color 0B & venv\Scripts\activate.bat && pip install -r requirements.txt && python app.py"
+) else (
+    echo       [!] No venv found, running with system Python...
+    start "SymtoMap Backend" cmd /k "title SymtoMap Backend & color 0B & pip install -r requirements.txt && python app.py"
+)
 
-echo  [3/3] Waiting for servers to start...
+:: Give the backend a moment to boot up
+echo       Waiting for backend to install deps ^& start...
+timeout /t 15 /nobreak >nul
+
+:: ──────────────────────────────────────────────
+::  Start Vite Frontend
+:: ──────────────────────────────────────────────
+echo [2/2] Starting Vite frontend dev server...
+cd /d "%ROOT_DIR%frontend"
+
+if not exist "node_modules" (
+    echo       Installing dependencies first...
+    start "SymtoMap Frontend" cmd /k "title SymtoMap Frontend & color 0D & npm install && npm run dev"
+) else (
+    start "SymtoMap Frontend" cmd /k "title SymtoMap Frontend & color 0D & npm run dev"
+)
+
+:: Wait a bit for frontend to start
 timeout /t 5 /nobreak >nul
 
+:: ──────────────────────────────────────────────
+::  Open in browser
+:: ──────────────────────────────────────────────
 echo.
-echo  Opening browser at http://localhost:5173 ...
-start http://localhost:5173
+echo ============================================
+echo   Backend  : http://localhost:5000
+echo   Frontend : http://localhost:5173
+echo ============================================
+echo.
+echo Opening browser...
+start "" "http://localhost:5173"
 
 echo.
-echo  ============================================
-echo   Both servers are running!
-echo   - Backend:  http://localhost:5000
-echo   - Frontend: http://localhost:5173
-echo.
-echo   Close the server windows to stop.
-echo  ============================================
+echo SymtoMap is running! Close the terminal windows to stop.
 echo.
 pause

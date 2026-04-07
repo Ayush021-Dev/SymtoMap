@@ -70,6 +70,119 @@ const ORGAN_ISSUES = {
     },
 };
 
+const ORGAN_RECOMMENDATIONS = {
+    heart: {
+        High: [
+            "Consult a cardiologist immediately for a comprehensive cardiac evaluation",
+            "Get an ECG, echocardiogram, and stress test done",
+            "Monitor blood pressure daily and maintain a strict low-sodium diet",
+            "Consider starting statin therapy under medical supervision",
+            "Avoid strenuous physical activity until cleared by a doctor"
+        ],
+        Moderate: [
+            "Schedule a cardiovascular health screening within the next month",
+            "Adopt a heart-healthy diet rich in omega-3 fatty acids",
+            "Exercise moderately for 30 minutes, 5 days a week",
+            "Reduce sodium intake to less than 2,300 mg/day",
+            "Monitor cholesterol and blood pressure regularly"
+        ],
+        Low: [
+            "Maintain current healthy lifestyle habits",
+            "Continue regular cardiovascular exercise",
+            "Get annual heart health checkups",
+            "Keep a balanced diet with limited saturated fats"
+        ],
+    },
+    lung: {
+        High: [
+            "See a pulmonologist urgently for comprehensive lung function tests",
+            "Get a chest X-ray and spirometry test immediately",
+            "If you smoke, quit immediately — seek cessation support",
+            "Avoid exposure to air pollution and secondhand smoke",
+            "Consider pulmonary rehabilitation if experiencing breathing difficulty"
+        ],
+        Moderate: [
+            "Schedule spirometry and lung function testing soon",
+            "If you smoke, begin a smoking cessation program now",
+            "Improve indoor air quality with air purifiers (HEPA filters)",
+            "Practice deep breathing exercises daily",
+            "Monitor for worsening symptoms like shortness of breath or chronic cough"
+        ],
+        Low: [
+            "Continue avoiding smoking and secondhand smoke exposure",
+            "Stay physically active to maintain lung capacity",
+            "Get annual flu and pneumonia vaccinations",
+            "Practice good respiratory hygiene"
+        ],
+    },
+    liver: {
+        High: [
+            "Consult a hepatologist immediately for a full liver panel and imaging",
+            "Get an abdominal ultrasound and FibroScan to assess liver health",
+            "Eliminate alcohol consumption completely",
+            "Follow a strict hepatoprotective diet (low fat, high fiber)",
+            "Review all medications with your doctor for hepatotoxic effects"
+        ],
+        Moderate: [
+            "Schedule a comprehensive liver function test panel",
+            "Limit alcohol consumption to minimal or zero",
+            "Adopt a Mediterranean-style diet to support liver health",
+            "Maintain a healthy weight — even 5-10% weight loss helps significantly",
+            "Avoid unnecessary medications, especially acetaminophen in high doses"
+        ],
+        Low: [
+            "Continue maintaining a healthy diet and weight",
+            "Limit alcohol to recommended guidelines",
+            "Get liver enzyme tests during annual checkups",
+            "Stay hydrated and eat fiber-rich foods"
+        ],
+    },
+    kidney: {
+        High: [
+            "See a nephrologist urgently for a full renal workup",
+            "Get comprehensive tests: creatinine, GFR, urine albumin, electrolyte panel",
+            "Strictly control blood pressure (target < 130/80 mmHg)",
+            "Limit protein intake to reduce kidney workload",
+            "Avoid NSAIDs and nephrotoxic drugs immediately"
+        ],
+        Moderate: [
+            "Schedule kidney function testing within the next 2 weeks",
+            "Control blood pressure and blood sugar levels strictly",
+            "Reduce sodium and protein intake per your doctor's advice",
+            "Stay well-hydrated with at least 2 liters of water daily",
+            "Avoid using over-the-counter painkillers regularly"
+        ],
+        Low: [
+            "Stay hydrated and maintain a balanced diet",
+            "Monitor kidney function during annual health checkups",
+            "Keep blood pressure within normal range",
+            "Limit excess protein and sodium intake"
+        ],
+    },
+    diabetes: {
+        High: [
+            "Consult an endocrinologist immediately for comprehensive metabolic assessment",
+            "Get HbA1c, fasting glucose, and insulin resistance tests done",
+            "Start a structured diet plan with a registered dietitian",
+            "Begin regular blood glucose monitoring (at least twice daily)",
+            "Incorporate 150+ minutes of moderate exercise per week"
+        ],
+        Moderate: [
+            "Schedule glucose tolerance test and HbA1c testing",
+            "Adopt a low glycemic index diet — reduce refined sugars and carbs",
+            "Increase physical activity to at least 30 minutes daily",
+            "Monitor fasting blood sugar weekly",
+            "Consider metformin if recommended by your doctor"
+        ],
+        Low: [
+            "Maintain a balanced diet with controlled carbohydrate intake",
+            "Continue regular physical activity",
+            "Get annual fasting glucose and HbA1c checks",
+            "Maintain a healthy weight and active lifestyle"
+        ],
+    },
+};
+
 function getRiskColor(riskLevel) {
     if (riskLevel === "High") return new THREE.Color(1.0, 0.08, 0.02);
     if (riskLevel === "Moderate") return new THREE.Color(1.0, 0.65, 0.0);
@@ -78,10 +191,10 @@ function getRiskColor(riskLevel) {
 }
 
 function getRiskHex(riskLevel) {
-    if (riskLevel === "High") return "#ff3322";
-    if (riskLevel === "Moderate") return "#ffaa00";
-    if (riskLevel === "Low") return "#22ee55";
-    return "#4488ff";
+    if (riskLevel === "High") return "#ef4444";
+    if (riskLevel === "Moderate") return "#f59e0b";
+    if (riskLevel === "Low") return "#10b981";
+    return "#6366f1";
 }
 
 function getOrganKeyFromMesh(mesh) {
@@ -315,17 +428,6 @@ function SpinningOrgan({ path }) {
     );
 }
 
-// ─── Scanline overlay ─────────────────────────────────────────────────────────
-
-function ScanlineOverlay() {
-    return (
-        <div style={{
-            position: "absolute", inset: 0, pointerEvents: "none", zIndex: 1,
-            background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,30,80,0.03) 2px, rgba(0,30,80,0.03) 4px)",
-        }} />
-    );
-}
-
 // ─── Connector Arrow ─────────────────────────────────────────────────────────
 
 function ConnectorArrow({ from, panelRef, hex }) {
@@ -364,23 +466,18 @@ function ConnectorArrow({ from, panelRef, hex }) {
         }}>
             <defs>
                 <linearGradient id="arr-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor={hex} stopOpacity="1" />
-                    <stop offset="100%" stopColor={hex} stopOpacity="0.3" />
+                    <stop offset="0%" stopColor={hex} stopOpacity="0.8" />
+                    <stop offset="100%" stopColor={hex} stopOpacity="0.2" />
                 </linearGradient>
-                <filter id="arr-glow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur stdDeviation="2.5" result="blur" />
-                    <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                </filter>
             </defs>
             <path d={`M ${from.x} ${from.y} Q ${cx} ${cy} ${to.x} ${to.y}`}
-                stroke={hex} strokeWidth="12" strokeOpacity="0.1" fill="none" strokeLinecap="round" />
+                stroke={hex} strokeWidth="8" strokeOpacity="0.06" fill="none" strokeLinecap="round" />
             <path d={`M ${from.x} ${from.y} Q ${cx} ${cy} ${to.x} ${to.y}`}
-                stroke="url(#arr-grad)" strokeWidth="2" fill="none" strokeLinecap="round" filter="url(#arr-glow)" />
+                stroke="url(#arr-grad)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
             <polygon points={`${to.x},${to.y} ${ax + px},${ay + py} ${ax - px},${ay - py}`}
-                fill={hex} opacity="0.95" filter="url(#arr-glow)" />
-            <circle cx={from.x} cy={from.y} r="5" fill={hex} opacity="1" />
-            <circle cx={from.x} cy={from.y} r="12" fill={hex} opacity="0.18" />
-            <circle cx={from.x} cy={from.y} r="20" fill={hex} opacity="0.07" />
+                fill={hex} opacity="0.7" />
+            <circle cx={from.x} cy={from.y} r="4" fill={hex} opacity="0.8" />
+            <circle cx={from.x} cy={from.y} r="10" fill={hex} opacity="0.1" />
         </svg>
     );
 }
@@ -390,22 +487,8 @@ function ConnectorArrow({ from, panelRef, hex }) {
 function RiskLegend({ riskData, selectedOrganKey, onOrganClick }) {
     if (!riskData) return null;
     return (
-        <div style={{
-            width: "260px",
-            padding: "28px 22px",
-            display: "flex", flexDirection: "column",
-            fontFamily: "'Rajdhani', sans-serif",
-        }}>
-            <div style={{
-                fontSize: "13px", letterSpacing: "0.28em", color: "rgba(100,180,255,0.6)",
-                marginBottom: "24px", textTransform: "uppercase", fontWeight: 700,
-                borderBottom: "1px solid rgba(60,140,255,0.15)", paddingBottom: "14px",
-                display: "flex", alignItems: "center", gap: "8px",
-            }}>
-                <span style={{
-                    display: "inline-block", width: "6px", height: "6px", borderRadius: "50%",
-                    background: "#4488ff", boxShadow: "0 0 8px #4488ff",
-                }} />
+        <div className="risk-legend">
+            <div className="legend-title">
                 Organ Risk Analysis
             </div>
 
@@ -417,27 +500,20 @@ function RiskLegend({ riskData, selectedOrganKey, onOrganClick }) {
                 return (
                     <div key={key}
                         onClick={() => onOrganClick(key)}
-                        style={{
-                            display: "flex", alignItems: "center", gap: "12px",
-                            padding: "12px 14px", borderRadius: "5px", cursor: "pointer",
-                            background: isSelected ? `${hex}12` : "transparent",
-                            border: isSelected ? `1px solid ${hex}40` : "1px solid transparent",
-                            transition: "all 0.2s", marginBottom: "6px",
-                        }}
+                        className={`legend-row ${isSelected ? "legend-row--active" : ""}`}
+                        style={{ "--risk-hex": hex }}
                     >
-                        <div style={{
-                            width: "10px", height: "10px", borderRadius: "50%", flexShrink: 0,
-                            background: hex, boxShadow: `0 0 10px ${hex}, 0 0 20px ${hex}55`,
-                        }} />
-                        <span style={{ fontSize: "15px", color: "#b8d0f0", width: "68px", fontWeight: 600, letterSpacing: "0.04em" }}>{label}</span>
-                        <div style={{ flex: 1, height: "4px", background: "rgba(255,255,255,0.07)", borderRadius: "2px", overflow: "hidden" }}>
-                            <div style={{
-                                width: `${r.risk_percentage}%`, height: "100%", borderRadius: "2px",
-                                background: hex, boxShadow: `0 0 8px ${hex}`,
-                                transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)",
-                            }} />
+                        <div className="legend-dot" style={{ background: hex, boxShadow: `0 0 8px ${hex}50` }} />
+                        <span className="legend-name">{label}</span>
+                        <div className="legend-bar-wrap">
+                            <div className="legend-bar">
+                                <div className="legend-bar-fill" style={{
+                                    width: `${r.risk_percentage}%`,
+                                    background: hex,
+                                }} />
+                            </div>
                         </div>
-                        <span style={{ fontSize: "14px", fontWeight: 700, color: hex, width: "46px", textAlign: "right" }}>{r.risk_percentage}%</span>
+                        <span className="legend-pct" style={{ color: hex }}>{r.risk_percentage}%</span>
                     </div>
                 );
             })}
@@ -445,9 +521,79 @@ function RiskLegend({ riskData, selectedOrganKey, onOrganClick }) {
     );
 }
 
+// ─── Full Analysis Modal ──────────────────────────────────────────────────────
+
+function FullAnalysisModal({ organKey, riskData, onClose }) {
+    const risk = riskData?.[organKey];
+    const label = ORGAN_LABELS[organKey] || organKey;
+    const issues = ORGAN_ISSUES[organKey]?.[risk?.risk_level] || [];
+    const recommendations = ORGAN_RECOMMENDATIONS[organKey]?.[risk?.risk_level] || [];
+    const hex = getRiskHex(risk?.risk_level);
+
+    return (
+        <>
+            <div className="analysis-overlay" onClick={onClose} />
+            <div className="analysis-modal" onClick={(e) => e.stopPropagation()}>
+                <button className="analysis-close" onClick={onClose}>✕</button>
+
+                <div className="analysis-header" style={{ "--risk-color": hex }}>
+                    <div className="analysis-header-top">
+                        <h2 className="analysis-organ-name">{label}</h2>
+                        <div className="analysis-risk-badge" style={{ background: `${hex}18`, color: hex, border: `1px solid ${hex}30` }}>
+                            {risk?.risk_level} Risk
+                        </div>
+                    </div>
+                    <div className="analysis-risk-meter">
+                        <div className="analysis-meter-bar">
+                            <div className="analysis-meter-fill" style={{ width: `${risk?.risk_percentage || 0}%`, background: `linear-gradient(90deg, ${hex}88, ${hex})` }} />
+                        </div>
+                        <span className="analysis-meter-value" style={{ color: hex }}>{risk?.risk_percentage || 0}%</span>
+                    </div>
+                </div>
+
+                <div className="analysis-body">
+                    <div className="analysis-section">
+                        <h3 className="analysis-section-title">
+                            <span className="analysis-section-icon">⚠</span>
+                            Potential Conditions
+                        </h3>
+                        <div className="analysis-issues-grid">
+                            {issues.map((iss, i) => (
+                                <div key={i} className="analysis-issue-card" style={{ "--risk-color": hex }}>
+                                    <div className="analysis-issue-dot" style={{ background: hex }} />
+                                    <span>{iss}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="analysis-section">
+                        <h3 className="analysis-section-title">
+                            <span className="analysis-section-icon">💡</span>
+                            Recommendations
+                        </h3>
+                        <div className="analysis-recommendations">
+                            {recommendations.map((rec, i) => (
+                                <div key={i} className="analysis-rec-item">
+                                    <div className="analysis-rec-number">{i + 1}</div>
+                                    <span>{rec}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="analysis-disclaimer">
+                        <strong>Disclaimer:</strong> This analysis is based on machine learning predictions and should not replace professional medical advice. Always consult a qualified healthcare provider for diagnosis and treatment.
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+}
+
 // ─── Organ Detail Popup ───────────────────────────────────────────────────────
 
-function OrganDetailPopup({ organKey, riskData, onClose, panelRef }) {
+function OrganDetailPopup({ organKey, riskData, onClose, panelRef, onViewAnalysis }) {
     const risk = riskData?.[organKey];
     const label = ORGAN_LABELS[organKey] || organKey;
     const modelPath = ORGAN_MODEL_PATHS[organKey];
@@ -456,43 +602,20 @@ function OrganDetailPopup({ organKey, riskData, onClose, panelRef }) {
 
     return (
         <>
-            <div onClick={onClose} style={{
-                position: "fixed", inset: 0, zIndex: 100,
-                background: "rgba(1,5,18,0.55)",
-                backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
-                animation: "backdropIn 0.2s ease",
-            }} />
+            <div onClick={onClose} className="dialog-overlay" />
 
-            <div ref={panelRef} onClick={(e) => e.stopPropagation()} style={{
-                position: "fixed", top: "50%", right: "5vw",
-                transform: "translateY(-50%)",
-                zIndex: 105, width: "340px",
-                background: "linear-gradient(160deg, rgba(8,18,48,0.98) 0%, rgba(4,10,28,0.99) 100%)",
-                border: `1px solid ${hex}50`, borderRadius: "8px", overflow: "hidden",
-                boxShadow: `0 0 80px ${hex}20, 0 40px 100px rgba(0,0,0,0.95), inset 0 0 0 1px rgba(255,255,255,0.04)`,
-                animation: "popupIn 0.3s cubic-bezier(0.34,1.56,0.64,1)",
-                fontFamily: "'Rajdhani', sans-serif",
-            }}>
+            <div ref={panelRef} onClick={(e) => e.stopPropagation()} className="organ-dialog" style={{ "--risk-color": hex }}>
+                {/* Subtle corner brackets */}
                 {[
-                    { top: 8, left: 8, borderTop: `1.5px solid ${hex}`, borderLeft: `1.5px solid ${hex}` },
-                    { top: 8, right: 8, borderTop: `1.5px solid ${hex}`, borderRight: `1.5px solid ${hex}` },
-                    { bottom: 8, left: 8, borderBottom: `1.5px solid ${hex}`, borderLeft: `1.5px solid ${hex}` },
-                    { bottom: 8, right: 8, borderBottom: `1.5px solid ${hex}`, borderRight: `1.5px solid ${hex}` },
-                ].map((s, i) => <div key={i} style={{ position: "absolute", width: 14, height: 14, zIndex: 10, ...s }} />)}
+                    { top: 8, left: 8, borderTop: `1px solid ${hex}40`, borderLeft: `1px solid ${hex}40` },
+                    { top: 8, right: 8, borderTop: `1px solid ${hex}40`, borderRight: `1px solid ${hex}40` },
+                    { bottom: 8, left: 8, borderBottom: `1px solid ${hex}40`, borderLeft: `1px solid ${hex}40` },
+                    { bottom: 8, right: 8, borderBottom: `1px solid ${hex}40`, borderRight: `1px solid ${hex}40` },
+                ].map((s, i) => <div key={i} style={{ position: "absolute", width: 12, height: 12, zIndex: 10, ...s }} />)}
 
-                <button onClick={onClose} style={{
-                    position: "absolute", top: 12, right: 14, zIndex: 20,
-                    background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
-                    color: "rgba(180,210,255,0.7)", width: 30, height: 30, borderRadius: "50%",
-                    fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                    fontFamily: "sans-serif",
-                }}>✕</button>
+                <button onClick={onClose} className="dialog-close">✕</button>
 
-                <div style={{
-                    width: "100%", height: "260px", position: "relative",
-                    background: "radial-gradient(ellipse at center, rgba(15,30,70,0.9) 0%, rgba(2,6,18,1) 100%)",
-                    borderBottom: `1px solid ${hex}22`,
-                }}>
+                <div className="dialog-viewer">
                     <Canvas camera={{ position: [0, 0, 2.8], fov: 52 }} gl={{ antialias: true, alpha: true }}>
                         <ambientLight intensity={0.5} />
                         <directionalLight position={[3, 5, 4]} intensity={2.0} />
@@ -501,57 +624,46 @@ function OrganDetailPopup({ organKey, riskData, onClose, panelRef }) {
                         <pointLight position={[0, 2, 0]} color="#aaccff" intensity={0.8} />
                         {modelPath && <SpinningOrgan path={modelPath} />}
                     </Canvas>
-                    <div style={{
-                        position: "absolute", inset: 0, pointerEvents: "none",
-                        background: `radial-gradient(ellipse at 50% 65%, ${hex}25 0%, transparent 65%)`,
+                    <div className="viewer-glow" style={{
+                        background: `radial-gradient(ellipse at 50% 65%, ${hex}15 0%, transparent 65%)`,
                     }} />
                 </div>
 
-                <div style={{ padding: "20px 24px 24px" }}>
-                    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "4px" }}>
-                        <h2 style={{ fontSize: "38px", fontWeight: 700, color: "#eef4ff", letterSpacing: "0.02em", lineHeight: 1, margin: 0 }}>{label}</h2>
+                <div className="dialog-info">
+                    <h2 className="dialog-title">{label}</h2>
+
+                    <div className="dialog-divider" style={{ background: `linear-gradient(90deg, ${hex}50, transparent)` }} />
+
+                    <div className="dialog-risk-line">
+                        <span className="drl-label">Predicted Risk</span>
+                        <span className="drl-value" style={{ color: hex }}>{risk?.risk_level || "—"}</span>
                     </div>
 
-                    <div style={{ height: "1px", background: `linear-gradient(90deg, ${hex}66, transparent)`, margin: "12px 0" }} />
-
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-                        <span style={{ fontSize: "13px", color: "#a0b8d8", fontWeight: 500 }}>Predicted Failure Risk</span>
-                        <span style={{ fontSize: "15px", fontWeight: 700, color: hex, letterSpacing: "0.08em", textShadow: `0 0 14px ${hex}` }}>{risk?.risk_level || "—"}</span>
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
-                        <div style={{ flex: 1, height: "6px", background: "rgba(255,255,255,0.07)", borderRadius: "3px", overflow: "hidden" }}>
-                            <div style={{
-                                width: `${risk?.risk_percentage || 0}%`, height: "100%", borderRadius: "3px",
-                                background: `linear-gradient(90deg, ${hex}88, ${hex})`, boxShadow: `0 0 10px ${hex}88`,
-                                transition: "width 1s cubic-bezier(0.4,0,0.2,1)",
+                    <div className="dialog-bar-row">
+                        <div className="dialog-bar">
+                            <div className="dialog-bar-fill" style={{
+                                width: `${risk?.risk_percentage || 0}%`,
+                                background: `linear-gradient(90deg, ${hex}88, ${hex})`,
                             }} />
                         </div>
-                        <span style={{ fontSize: "15px", fontWeight: 700, color: hex, width: "40px", textAlign: "right" }}>{risk?.risk_percentage || 0}%</span>
+                        <span className="dialog-pct" style={{ color: hex }}>{risk?.risk_percentage || 0}%</span>
                     </div>
 
-                    <div style={{ marginBottom: "20px" }}>
-                        <p style={{ fontSize: "11px", color: "rgba(100,160,255,0.5)", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: "10px", fontWeight: 600 }}>Potential Issues</p>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div className="dialog-issues">
+                        <p className="issues-heading">Potential Issues</p>
+                        <ul className="issues-list">
                             {issues.map((iss, i) => (
-                                <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                    <div style={{
-                                        width: "7px", height: "7px", borderRadius: "50%", flexShrink: 0,
-                                        background: i % 2 === 0 ? "#4488ff" : hex, boxShadow: `0 0 6px ${i % 2 === 0 ? "#4488ff" : hex}`,
-                                    }} />
-                                    <span style={{ fontSize: "14px", color: "#c0d4f0" }}>{iss}</span>
-                                </div>
+                                <li key={i}>
+                                    <div className="issue-bullet" style={{ background: hex }} />
+                                    <span>{iss}</span>
+                                </li>
                             ))}
-                        </div>
+                        </ul>
                     </div>
 
-                    <button style={{
-                        width: "100%", padding: "14px",
-                        background: "linear-gradient(135deg, rgba(20,70,180,0.95), rgba(15,50,130,0.95))",
-                        border: "1px solid rgba(80,150,255,0.45)", borderRadius: "4px", color: "#e0eeff",
-                        fontFamily: "'Rajdhani', sans-serif", fontSize: "14px", fontWeight: 600,
-                        letterSpacing: "0.14em", textTransform: "uppercase", cursor: "pointer",
-                    }}>View Full Analysis</button>
+                    <button className="dialog-btn" onClick={onViewAnalysis}>
+                        View Full Analysis
+                    </button>
                 </div>
             </div>
         </>
@@ -564,6 +676,7 @@ export default function HumanBody({ riskData, onBack }) {
     const [selectedOrganKey, setSelectedOrganKey] = useState(null);
     const [hoveredOrganKey, setHoveredOrganKey] = useState(null);
     const [arrowFrom, setArrowFrom] = useState(null);
+    const [showAnalysis, setShowAnalysis] = useState(null);
     const panelRef = useRef(null);
     const projectOrganRef = useRef(null);
 
@@ -577,40 +690,21 @@ export default function HumanBody({ riskData, onBack }) {
         }
     }, []);
 
-    const hex = selectedOrganKey ? getRiskHex(riskData?.[selectedOrganKey]?.risk_level) : "#4488ff";
+    const handleViewAnalysis = useCallback(() => {
+        setShowAnalysis(selectedOrganKey);
+        handleClose();
+    }, [selectedOrganKey, handleClose]);
+
+    const hex = selectedOrganKey ? getRiskHex(riskData?.[selectedOrganKey]?.risk_level) : "#6366f1";
 
     return (
         <>
-            <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600&display=swap');
-        @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes popupIn {
-          from { opacity: 0; transform: translateY(-50%) translateX(20px) scale(0.96); }
-          to   { opacity: 1; transform: translateY(-50%) translateX(0) scale(1); }
-        }
-        @keyframes chipIn {
-          from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
-          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-      `}</style>
-
-            <div style={{
-                width: "100%", height: "100%", position: "relative", overflow: "hidden",
-                background: "linear-gradient(135deg, #020a1e 0%, #030d26 40%, #020812 100%)",
-                fontFamily: "'Exo 2', sans-serif", color: "#c8deff",
-            }}>
-                {/* Background grid */}
-                <div style={{
-                    position: "absolute", inset: 0, pointerEvents: "none",
-                    backgroundImage: `linear-gradient(rgba(30,80,200,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(30,80,200,0.04) 1px, transparent 1px)`,
-                    backgroundSize: "50px 50px",
-                    maskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%)",
-                }} />
-                <div style={{ position: "absolute", width: "500px", height: "500px", borderRadius: "50%", top: "-100px", left: "30%", background: "radial-gradient(circle, rgba(20,60,180,0.12) 0%, transparent 70%)", pointerEvents: "none" }} />
-                <div style={{ position: "absolute", width: "300px", height: "300px", borderRadius: "50%", bottom: 0, right: "20%", background: "radial-gradient(circle, rgba(10,40,120,0.1) 0%, transparent 70%)", pointerEvents: "none" }} />
+            <div className="hb-container">
+                {/* Clean background */}
+                <div className="hb-bg" />
 
                 {/* 3D Canvas */}
-                <div style={{ position: "absolute", inset: 0 }}>
+                <div className="hb-canvas-area">
                     <Canvas camera={{ position: [0, 0, 2.8], fov: 50 }} gl={{ antialias: true, alpha: true }}>
                         <ambientLight intensity={0.3} />
                         <directionalLight position={[4, 8, 4]} intensity={0.8} color="#aaccff" />
@@ -643,16 +737,10 @@ export default function HumanBody({ riskData, onBack }) {
                             maxPolarAngle={Math.PI * 0.85}
                         />
                     </Canvas>
-                    <ScanlineOverlay />
                 </div>
 
                 {/* Legend */}
-                <div style={{
-                    position: "absolute", left: 0, top: 0, bottom: 0,
-                    display: "flex", alignItems: "center",
-                    zIndex: 10,
-                    background: "linear-gradient(90deg, rgba(2,8,22,0.75) 0%, rgba(2,8,22,0.4) 80%, transparent 100%)",
-                }}>
+                <div className="hb-legend-area">
                     <RiskLegend
                         riskData={riskData}
                         selectedOrganKey={selectedOrganKey}
@@ -662,52 +750,24 @@ export default function HumanBody({ riskData, onBack }) {
 
                 {/* Back button */}
                 {onBack && (
-                    <button
-                        onClick={onBack}
-                        className="hb-back-btn"
-                        style={{
-                            position: "absolute", top: "12px", left: "7%", transform: "translateX(-50%)",
-                            zIndex: 20, padding: "8px 24px",
-                            background: "rgba(5,15,40,0.85)", border: "1px solid rgba(60,140,255,0.35)",
-                            borderRadius: "20px", color: "#c8deff", cursor: "pointer",
-                            fontFamily: "'Rajdhani', sans-serif", fontSize: "13px", fontWeight: 600,
-                            letterSpacing: "0.12em", textTransform: "uppercase",
-                            backdropFilter: "blur(8px)", transition: "all 0.2s",
-                        }}
-                        onMouseEnter={(e) => { e.target.style.borderColor = "rgba(60,140,255,0.7)"; e.target.style.boxShadow = "0 0 16px rgba(60,140,255,0.25)"; }}
-                        onMouseLeave={(e) => { e.target.style.borderColor = "rgba(60,140,255,0.35)"; e.target.style.boxShadow = "none"; }}
-                    >
-                        New Assessment
+                    <button onClick={onBack} className="hb-back-btn">
+                        ← New Assessment
                     </button>
                 )}
 
                 {/* Hover chip */}
                 {hoveredOrganKey && !selectedOrganKey && (
-                    <div style={{
-                        position: "absolute", top: "50px", left: "50%",
-                        transform: "translateX(-50%)", zIndex: 20,
-                        background: "rgba(3,10,28,0.9)",
-                        border: `1px solid ${getRiskHex(riskData?.[hoveredOrganKey]?.risk_level)}55`,
-                        borderRadius: "20px", padding: "7px 20px", fontSize: "14px",
-                        fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, letterSpacing: "0.1em",
-                        color: "#c8deff", display: "flex", gap: "8px", alignItems: "center",
-                        pointerEvents: "none", backdropFilter: "blur(8px)", animation: "chipIn 0.15s ease",
-                    }}>
+                    <div className="hover-chip">
                         <span>{ORGAN_LABELS[hoveredOrganKey]}</span>
                         {riskData?.[hoveredOrganKey] && (
-                            <span style={{ fontWeight: 700, color: getRiskHex(riskData[hoveredOrganKey].risk_level) }}>
+                            <span className="hover-chip-risk" style={{ color: getRiskHex(riskData[hoveredOrganKey].risk_level) }}>
                                 · {riskData[hoveredOrganKey].risk_level} Risk
                             </span>
                         )}
                     </div>
                 )}
 
-                <p style={{
-                    position: "absolute", bottom: "16px", left: "50%", transform: "translateX(-50%)",
-                    fontSize: "10px", letterSpacing: "0.2em", color: "rgba(80,140,255,0.3)",
-                    fontFamily: "'Rajdhani', sans-serif", textTransform: "uppercase",
-                    whiteSpace: "nowrap", pointerEvents: "none", margin: 0, zIndex: 10,
-                }}>Click an organ to inspect · Drag to rotate</p>
+                <p className="canvas-hint">Click an organ to inspect · Drag to rotate</p>
 
                 {/* Popup + arrow */}
                 {selectedOrganKey && (
@@ -717,11 +777,21 @@ export default function HumanBody({ riskData, onBack }) {
                             riskData={riskData}
                             onClose={handleClose}
                             panelRef={panelRef}
+                            onViewAnalysis={handleViewAnalysis}
                         />
                         <ConnectorArrow from={arrowFrom} panelRef={panelRef} hex={hex} />
                     </>
                 )}
             </div>
+
+            {/* Full Analysis Modal */}
+            {showAnalysis && (
+                <FullAnalysisModal
+                    organKey={showAnalysis}
+                    riskData={riskData}
+                    onClose={() => setShowAnalysis(null)}
+                />
+            )}
         </>
     );
 }
